@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import {
   ChevronDown,
   MessageCircle,
-  Mic,
   Moon,
+  Send,
   Sun,
   Volume2,
   VolumeX,
@@ -67,6 +67,7 @@ const actionKeywords = [
   "تحقیق", "انٹرنیٹ", "گوگل شیٹ", "میٹنگ", "ای میل", "سرمایہ کار",
   "रिसर्च", "इंटरनेट", "गूगल शीट", "मीटिंग", "ईमेल", "निवेशक",
 ];
+type ChatMessage = { id: number; role: "user" | "assistant"; text: string };
 export default function App() {
   const [index, setIndex] = useState(0),
     [chat, setChat] = useState(false),
@@ -75,7 +76,10 @@ export default function App() {
     [languageOpen, setLanguageOpen] = useState(false),
     [theme, setTheme] = useState<"dark" | "light">("dark"),
     [message, setMessage] = useState(""),
-    [webhookStatus, setWebhookStatus] = useState("");
+    [sending, setSending] = useState(false),
+    [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+      { id: 1, role: "assistant", text: "Welcome. How may I support your investment journey in Botswana today?" },
+    ]);
   const active = slides[index];
   useEffect(() => {
     if (chat) return;
@@ -104,7 +108,9 @@ export default function App() {
     if (!message.trim()) return;
     const question = message.trim();
     const isAction = actionKeywords.some((keyword) => question.toLowerCase().includes(keyword));
-    setWebhookStatus(isAction ? "Sending to Thabo action workflow…" : "Searching the BITC knowledge base…");
+    setChatMessages((items) => [...items, { id: Date.now(), role: "user", text: question }]);
+    setMessage("");
+    setSending(true);
     try {
       if (!isAction) {
         const response = await fetch("/api/knowledge/search", {
@@ -115,7 +121,7 @@ export default function App() {
         if (!response.ok) throw new Error(`Knowledge API returned ${response.status}`);
         const data = await response.json();
         const answer = data.matches?.[0]?.answer ?? "I could not find that information in the BITC knowledge base.";
-        setWebhookStatus(answer);
+        setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: answer }]);
         if (voice && "speechSynthesis" in window) {
           speechSynthesis.cancel();
           const selected = languages.find((item) => item[0] === language);
@@ -123,7 +129,6 @@ export default function App() {
           utterance.lang = selected?.[1] ?? "en-US";
           speechSynthesis.speak(utterance);
         }
-        setMessage("");
         return;
       }
       const url = import.meta.env.VITE_N8N_TEST_WEBHOOK_URL;
@@ -141,16 +146,16 @@ export default function App() {
       });
       if (!response.ok) throw new Error(`Webhook returned ${response.status}`);
       const data = await response.json().catch(() => null);
-      setWebhookStatus(
-        data?.output ??
+      const answer = data?.output ??
           data?.response ??
           data?.message?.body ??
           (typeof data?.message === "string" ? data.message : null) ??
-          "Workflow received your request.",
-      );
-      setMessage("");
+          "Your request was received and the workflow completed successfully.";
+      setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: answer }]);
     } catch (error) {
-      setWebhookStatus(error instanceof Error ? error.message : "The requested service did not respond.");
+      setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: error instanceof Error ? error.message : "The requested service did not respond." }]);
+    } finally {
+      setSending(false);
     }
   };
   return (
@@ -272,23 +277,23 @@ export default function App() {
             <button className="close" onClick={() => setChat(false)}>
               <X />
             </button>
-            <p className="eyebrow">BITC VIRTUAL CONCIERGE</p>
-            <h2>Talk to Thabo</h2>
-            <p>
-              Welcome. Tell me your preferred language, then ask about investing
-              in Botswana.
-            </p>
-            <div className="messages">
-              <span>THABO</span>
-              <p>How may I support your investment journey today?</p>
+            <div className="chat-heading">
+              <img src="/assets/thabo-businessman.jpeg" alt="Thabo" />
+              <div><p className="eyebrow">BITC VIRTUAL CONCIERGE</p><h2>Talk to Thabo</h2><span><i /> Online</span></div>
+            </div>
+            <div className="messages" aria-live="polite">
+              {chatMessages.map((item) => (
+                <div key={item.id} className={`message-bubble ${item.role}`}>
+                  <span>{item.role === "assistant" ? "THABO" : "YOU"}</span>
+                  <p>{item.text}</p>
+                </div>
+              ))}
+              {sending && <div className="typing"><i /><i /><i /></div>}
             </div>
             <form onSubmit={sendToWebhook}>
               <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your question or preferred language…" />
-              <button>
-                <Mic /> Speak
-              </button>
+              <button disabled={sending || !message.trim()}><Send /> Send</button>
             </form>
-            {webhookStatus && <p className="webhook-status">{webhookStatus}</p>}
             <small>
               Knowledge answers and external actions are processed separately.
               Sensitive actions require approval.
