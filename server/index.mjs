@@ -1,0 +1,44 @@
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+
+const knowledge = JSON.parse(await readFile(new URL("./knowledge-base.json", import.meta.url), "utf8"));
+const port = Number(process.env.KNOWLEDGE_PORT || 8787);
+const normalize = (value = "") => value.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, " ").replace(/\s+/g, " ").trim();
+
+function search(query, limit = 4) {
+  const normalized = normalize(query);
+  const tokens = new Set(normalized.split(" ").filter((word) => word.length > 2));
+  return knowledge.entries.map((entry) => {
+    const searchable = normalize([entry.question, entry.answer, ...entry.keywords].join(" "));
+    const normalizedQuestion = normalize(entry.question);
+    let score = entry.keywords.reduce((total, keyword) => total + (normalized.includes(normalize(keyword)) ? 5 : 0), 0);
+    for (const token of tokens) {
+      if (searchable.includes(token)) score += 1;
+      if (normalizedQuestion.includes(token)) score += 3;
+    }
+    return { ...entry, score };
+  }).filter((entry) => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+createServer(async (request, response) => {
+  response.setHeader("Access-Control-Allow-Origin", "http://127.0.0.1:5173");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  if (request.method === "OPTIONS") return response.end();
+  if (request.url === "/api/knowledge/health") return response.end(JSON.stringify({ ok: true, entries: knowledge.entries.length }));
+  if (request.method === "POST" && request.url === "/api/knowledge/search") {
+    let raw = "";
+    for await (const chunk of request) raw += chunk;
+    try {
+      const body = JSON.parse(raw || "{}");
+      const query = String(body.query || "").trim();
+      if (!query) { response.statusCode = 400; return response.end(JSON.stringify({ error: "query is required" })); }
+      const matches = search(query, Math.min(Number(body.limit) || 4, 6));
+      return response.end(JSON.stringify({ route: "knowledge", query, language: body.language || "English", matches, context: matches.map((item) => `${item.question}\n${item.answer}\nSource: ${item.sourceUrl}`).join("\n\n") }));
+    } catch { response.statusCode = 400; return response.end(JSON.stringify({ error: "invalid JSON" })); }
+  }
+  response.statusCode = 404;
+  response.end(JSON.stringify({ error: "not found" }));
+}).listen(port, "127.0.0.1", () => console.log(`BITC Knowledge API listening on http://127.0.0.1:${port}`));
+

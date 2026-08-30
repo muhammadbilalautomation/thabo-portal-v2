@@ -60,6 +60,13 @@ const intros: Record<string, string> = {
   Afrikaans:
     "Welkom by beleggingsgeleenthede in Botswana. BITC ondersteun beleggers met eenstopdienste. Klik op Chat om met Thabo te praat.",
 };
+const actionKeywords = [
+  "research", "search the web", "internet", "google sheet", "spreadsheet",
+  "book meeting", "schedule meeting", "cancel meeting", "update meeting",
+  "send email", "email draft", "draft email", "find investor", "find contact",
+  "تحقیق", "انٹرنیٹ", "گوگل شیٹ", "میٹنگ", "ای میل", "سرمایہ کار",
+  "रिसर्च", "इंटरनेट", "गूगल शीट", "मीटिंग", "ईमेल", "निवेशक",
+];
 export default function App() {
   const [index, setIndex] = useState(0),
     [chat, setChat] = useState(false),
@@ -95,19 +102,38 @@ export default function App() {
   const sendToWebhook = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!message.trim()) return;
-    const url = import.meta.env.VITE_N8N_TEST_WEBHOOK_URL;
-    if (!url) {
-      setWebhookStatus("Test webhook URL is not configured yet.");
-      return;
-    }
-    setWebhookStatus("Sending to Thabo workflow…");
+    const question = message.trim();
+    const isAction = actionKeywords.some((keyword) => question.toLowerCase().includes(keyword));
+    setWebhookStatus(isAction ? "Sending to Thabo action workflow…" : "Searching the BITC knowledge base…");
     try {
+      if (!isAction) {
+        const response = await fetch("/api/knowledge/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: question, language, limit: 4 }),
+        });
+        if (!response.ok) throw new Error(`Knowledge API returned ${response.status}`);
+        const data = await response.json();
+        const answer = data.matches?.[0]?.answer ?? "I could not find that information in the BITC knowledge base.";
+        setWebhookStatus(answer);
+        if (voice && "speechSynthesis" in window) {
+          speechSynthesis.cancel();
+          const selected = languages.find((item) => item[0] === language);
+          const utterance = new SpeechSynthesisUtterance(answer);
+          utterance.lang = selected?.[1] ?? "en-US";
+          speechSynthesis.speak(utterance);
+        }
+        setMessage("");
+        return;
+      }
+      const url = import.meta.env.VITE_N8N_TEST_WEBHOOK_URL;
+      if (!url) throw new Error("Test webhook URL is not configured yet.");
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: {
-            body: message.trim(),
+            body: question,
             language,
           },
           source: "thabo-portal",
@@ -123,8 +149,8 @@ export default function App() {
           "Workflow received your request.",
       );
       setMessage("");
-    } catch {
-      setWebhookStatus("The test workflow did not respond. Make sure n8n is listening for a test event.");
+    } catch (error) {
+      setWebhookStatus(error instanceof Error ? error.message : "The requested service did not respond.");
     }
   };
   return (
