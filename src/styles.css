@@ -19,7 +19,7 @@ a {
   background: #07110d;
 }
 header {
-  height: 82px;
+  min-height: 82px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -48,6 +48,13 @@ header a {
   border-radius: 50%;
   font: 700 16px "Playfair Display";
   color: #e8c978;
+  overflow: hidden;
+  background: #10231a;
+}
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .brand b {
   display: block;
@@ -59,6 +66,21 @@ header a {
   letter-spacing: 0.16em;
   color: #aab9ae;
   margin-top: 4px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.header-actions .controls {
+  display: flex;
+  gap: 8px;
+}
+.header-actions .sound,
+.header-actions .theme-toggle,
+.header-actions .language > button {
+  min-height: 38px;
+  padding: 8px 11px;
 }
 .experience {
   position: relative;
@@ -233,7 +255,7 @@ header a {
   margin: 25px auto 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 .control-bar nav {
   display: flex;
@@ -290,7 +312,7 @@ header a {
 .language-menu {
   position: absolute;
   right: 0;
-  bottom: 50px;
+  top: 46px;
   width: 330px;
   padding: 15px;
   background: #f4eedf;
@@ -389,6 +411,13 @@ header a {
   margin-top: 15px;
   color: #687169;
 }
+.webhook-status {
+  margin: 12px 0 0;
+  padding: 11px 13px;
+  background: #e9e2d2;
+  color: #46564d;
+  font-size: 11px;
+}
 .portal.light {
   background: #eee7d8;
   color: #17261e;
@@ -442,6 +471,19 @@ header a {
   color: #53675b;
 }
 @media (max-width: 950px) {
+  header {
+    padding: 12px 3vw;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions .controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .header-actions > a {
+    display: none;
+  }
   .showcase {
     grid-template-columns: 1fr 160px;
   }
@@ -455,7 +497,34 @@ header a {
 }
 @media (max-width: 680px) {
   header {
-    height: 70px;
+    min-height: 70px;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .brand small {
+    display: none;
+  }
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+  .header-actions .controls {
+    gap: 5px;
+  }
+  .header-actions .sound,
+  .header-actions .theme-toggle,
+  .header-actions .language > button {
+    min-height: 34px;
+    padding: 6px 8px;
+  }
+  .header-actions .sound,
+  .header-actions .theme-toggle {
+    font-size: 0;
+  }
+  .header-actions .sound svg,
+  .header-actions .theme-toggle svg {
+    width: 15px;
+    margin: 0;
   }
   .experience {
     padding: 28px 20px;
@@ -489,11 +558,9 @@ header a {
     align-items: flex-start;
     gap: 18px;
   }
-  .controls {
-    flex-direction: column;
-  }
   .language-menu {
     right: -10px;
+    top: 42px;
     width: 300px;
     grid-template-columns: repeat(2, 1fr);
   }

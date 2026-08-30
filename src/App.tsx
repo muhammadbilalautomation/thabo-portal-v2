@@ -66,7 +66,9 @@ export default function App() {
     [voice, setVoice] = useState(true),
     [language, setLanguage] = useState("English"),
     [languageOpen, setLanguageOpen] = useState(false),
-    [theme, setTheme] = useState<"dark" | "light">("dark");
+    [theme, setTheme] = useState<"dark" | "light">("dark"),
+    [message, setMessage] = useState(""),
+    [webhookStatus, setWebhookStatus] = useState("");
   const active = slides[index];
   useEffect(() => {
     if (chat) return;
@@ -90,19 +92,83 @@ export default function App() {
     speechSynthesis.cancel();
     setChat(true);
   };
+  const sendToWebhook = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    const url = import.meta.env.VITE_N8N_TEST_WEBHOOK_URL;
+    if (!url) {
+      setWebhookStatus("Test webhook URL is not configured yet.");
+      return;
+    }
+    setWebhookStatus("Sending to Thabo workflow…");
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: message.trim(),
+          language,
+          source: "thabo-portal",
+        }),
+      });
+      if (!response.ok) throw new Error(`Webhook returned ${response.status}`);
+      const data = await response.json().catch(() => null);
+      setWebhookStatus(
+        data?.output ?? data?.response ?? data?.message ?? "Workflow received your request.",
+      );
+      setMessage("");
+    } catch {
+      setWebhookStatus("The test workflow did not respond. Make sure n8n is listening for a test event.");
+    }
+  };
   return (
     <main className={`portal ${theme}`}>
       <header>
         <div className="brand">
-          <span className="brand-mark">TH</span>
+          <span className="brand-mark">
+            <img src="/assets/thabo-businessman.jpeg" alt="Thabo" />
+          </span>
           <div>
             <b>THABO</b>
             <small>BOTSWANA INVESTMENT CONCIERGE</small>
           </div>
         </div>
-        <a href="https://www.bitc.co.bw/" target="_blank">
-          BITC KNOWLEDGE
-        </a>
+        <div className="header-actions">
+          <div className="controls">
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              {theme === "dark" ? <Sun /> : <Moon />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
+            </button>
+            <button className="sound" onClick={() => setVoice((v) => !v)}>
+              {voice ? <Volume2 /> : <VolumeX />}
+              {voice ? "Voice-over on" : "Voice-over off"}
+            </button>
+            <div className="language">
+              <button onClick={() => setLanguageOpen((v) => !v)}>
+                <span>Voice language</span>
+                <b>{language}</b>
+                <ChevronDown />
+              </button>
+              {languageOpen && (
+                <div className="language-menu">
+                  <p>International languages</p>
+                  {languages.filter((l) => l[2] === "international").map((l) => (
+                    <button key={l[0]} onClick={() => { setLanguage(l[0]); setLanguageOpen(false); }} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
+                  ))}
+                  <p>Native languages</p>
+                  {languages.filter((l) => l[2] === "native").map((l) => (
+                    <button key={l[0]} onClick={() => { setLanguage(l[0]); setLanguageOpen(false); }} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <a href="https://www.bitc.co.bw/" target="_blank">BITC KNOWLEDGE</a>
+        </div>
       </header>
       <section className="experience">
         <div className="bitc-backdrop" />
@@ -162,61 +228,6 @@ export default function App() {
               />
             ))}
           </nav>
-          <div className="controls">
-            <button
-              className="theme-toggle"
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {theme === "dark" ? <Sun /> : <Moon />}
-              {theme === "dark" ? "Light mode" : "Dark mode"}
-            </button>
-            <button className="sound" onClick={() => setVoice((v) => !v)}>
-              {voice ? <Volume2 /> : <VolumeX />}
-              {voice ? "Voice-over on" : "Voice-over off"}
-            </button>
-            <div className="language">
-              <button onClick={() => setLanguageOpen((v) => !v)}>
-                <span>Voice language</span>
-                <b>{language}</b>
-                <ChevronDown />
-              </button>
-              {languageOpen && (
-                <div className="language-menu">
-                  <p>International languages</p>
-                  {languages
-                    .filter((l) => l[2] === "international")
-                    .map((l) => (
-                      <button
-                        key={l[0]}
-                        onClick={() => {
-                          setLanguage(l[0]);
-                          setLanguageOpen(false);
-                        }}
-                        className={language === l[0] ? "chosen" : ""}
-                      >
-                        {l[0]}
-                      </button>
-                    ))}
-                  <p>Native languages</p>
-                  {languages
-                    .filter((l) => l[2] === "native")
-                    .map((l) => (
-                      <button
-                        key={l[0]}
-                        onClick={() => {
-                          setLanguage(l[0]);
-                          setLanguageOpen(false);
-                        }}
-                        className={language === l[0] ? "chosen" : ""}
-                      >
-                        {l[0]}
-                      </button>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
         <p className="language-prompt">
           Click Chat to talk to Thabo and specify your preferred language for
@@ -239,12 +250,13 @@ export default function App() {
               <span>THABO</span>
               <p>How may I support your investment journey today?</p>
             </div>
-            <form onSubmit={(e) => e.preventDefault()}>
-              <input placeholder="Type your question or preferred language…" />
+            <form onSubmit={sendToWebhook}>
+              <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your question or preferred language…" />
               <button>
                 <Mic /> Speak
               </button>
             </form>
+            {webhookStatus && <p className="webhook-status">{webhookStatus}</p>}
             <small>
               Knowledge answers and external actions are processed separately.
               Sensitive actions require approval.
