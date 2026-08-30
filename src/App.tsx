@@ -106,15 +106,21 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: message.trim(),
-          language,
+          message: {
+            body: message.trim(),
+            language,
+          },
           source: "thabo-portal",
         }),
       });
       if (!response.ok) throw new Error(`Webhook returned ${response.status}`);
       const data = await response.json().catch(() => null);
       setWebhookStatus(
-        data?.output ?? data?.response ?? data?.message ?? "Workflow received your request.",
+        data?.output ??
+          data?.response ??
+          data?.message?.body ??
+          (typeof data?.message === "string" ? data.message : null) ??
+          "Workflow received your request.",
       );
       setMessage("");
     } catch {
