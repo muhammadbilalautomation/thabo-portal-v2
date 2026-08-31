@@ -25,6 +25,18 @@ const slides = slideGroups.flatMap(([sector, count]) =>
       ] as const,
   ),
 );
+const investorMarqueeItems = [
+  "Investor Recruitment",
+  "24/7 Virtual Foreign Investor Call Center Assistant",
+  "Multi-Language Investor Communication",
+  "Free Investor Calls in Multiple Languages",
+  "No More Investor Recruitment Language Barriers",
+  "Cold Calls and Cold Emails to Investors in Multiple Languages",
+  "Support Investor Registrations by Emailing Application Forms in the User’s Language",
+  "Investor Orientation and Selling Points",
+  "DEVELOPED BY: SENSTAR SOFTWARE SYSTEMS BOTSWANA - +267 75 602 481",
+  "DEVELOPED BY: SENSTAR SOFTWARE SYSTEMS [BOTSWANA CITIZEN OWNED] - +267 75 602 481",
+];
 const languages = [
   ["English", "en-US", "international"],
   ["English (Canada)", "en-CA", "international"],
@@ -271,11 +283,15 @@ export default function App() {
       <section className="experience">
         <div className="bitc-backdrop" />
         <div className="backdrop-shade" />
+        <section className="investor-marquee" aria-label="Investor services">
+          <div className="investor-marquee-track" aria-hidden="true">
+            {[...investorMarqueeItems, ...investorMarqueeItems].map((item, itemIndex) => (
+              <span key={`${item}-${itemIndex}`}><i />{item}</span>
+            ))}
+          </div>
+          <p className="sr-only">{investorMarqueeItems.join(". ")}</p>
+        </section>
         <div className="headline">
-          <span className="live">
-            <i /> LIVE INVESTMENT CHANNEL
-          </span>
-          <p>{active[0]} · Botswana</p>
           <h1>{active[1]}</h1>
         </div>
         <div className="showcase">
@@ -311,7 +327,7 @@ export default function App() {
               support throughout the investment journey.
             </p>
             <button className="primary" onClick={openChat}>
-              <MessageCircle /> START CHAT
+              <MessageCircle /> TALK TO THABO
             </button>
             <a className="qr-card" href="https://bitcassist-hub2w6hr.manus.space" target="_blank" rel="noreferrer">
               <img src="/assets/ecosystem/thabo-qr-code.png" alt="QR code to open the Thabo portal" />
@@ -345,6 +361,9 @@ export default function App() {
           <div><img src="/assets/ecosystem/bitc.jpg" alt="Botswana Investment and Trade Centre" /></div>
         </div>
       </section>
+      {!chat && <button className="floating-chat" onClick={openChat} aria-label="Talk to Thabo">
+        <span><MessageCircle /></span><b>TALK TO THABO</b>
+      </button>}
       {chat && (
         <div className="modal">
           <section className="chat">

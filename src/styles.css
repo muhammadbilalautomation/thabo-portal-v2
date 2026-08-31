@@ -118,30 +118,48 @@ header a {
   max-width: 1050px;
   margin: 0 auto 30px;
 }
-.live {
-  font-size: 9px;
-  letter-spacing: 0.25em;
-  color: #e8cb85;
-}
-.live i {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  background: #ef5b49;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-.headline p {
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  font-size: 10px;
-  color: #b6c9bc;
-  margin: 18px 0 8px;
-}
 .headline h1 {
   font: 800 clamp(32px, 4.5vw, 62px) / 1.03 "Playfair Display";
   margin: 0;
 }
+.investor-marquee {
+  position: relative;
+  z-index: 2;
+  width: calc(100% + 10vw);
+  margin: -40px -5vw 30px;
+  overflow: hidden;
+  border-block: 1px solid #d8b36a33;
+  background: #0d2a20d9;
+  mask-image: linear-gradient(to right, transparent 0, #000 5%, #000 95%, transparent 100%);
+}
+.investor-marquee-track {
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  padding: 13px 0;
+  animation: investor-marquee-right 95s linear infinite;
+  will-change: transform;
+}
+.investor-marquee-track span {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 25px;
+  color: #f7efd9;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.investor-marquee-track i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e3c170;
+  box-shadow: 0 0 10px #e3c170aa;
+}
+@keyframes investor-marquee-right { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .showcase {
   position: relative;
   display: grid;
@@ -262,9 +280,9 @@ header a {
   width: 16px;
 }
 .qr-card {
-  width: min(230px, 100%);
+  width: min(285px, 100%);
   margin: 20px auto 0;
-  padding: 10px;
+  padding: 13px;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -276,7 +294,7 @@ header a {
   transition: transform 0.2s ease;
 }
 .qr-card:hover { transform: translateY(-3px); }
-.qr-card img { width: 74px; height: 74px; object-fit: contain; }
+.qr-card img { width: 105px; height: 105px; flex: 0 0 105px; object-fit: contain; }
 .qr-card span { text-align: left; }
 .qr-card b { display: block; font-size: 9px; letter-spacing: 0.1em; }
 .qr-card small { display: block; margin-top: 4px; color: #657269; font-size: 8px; }
@@ -414,6 +432,29 @@ header a {
 }
 .ecosystem-logos img { width: 100%; max-height: 80px; object-fit: contain; }
 .portal.light .ecosystem { background: #e6dece; color: #173526; border-color: #92763d44; }
+.portal.light .investor-marquee { background: #173c2f; }
+.floating-chat {
+  position: fixed;
+  right: 26px;
+  bottom: 24px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 9px;
+  border: 1px solid #e4c67566;
+  border-radius: 999px;
+  background: #102d22ee;
+  color: #fff;
+  box-shadow: 0 16px 45px #0007;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.floating-chat:hover { transform: translateY(-4px); }
+.floating-chat span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #e3bd5c; color: #173526; }
+.floating-chat svg { width: 18px; }
+.floating-chat b { font-size: 10px; letter-spacing: 0.08em; }
 .modal {
   position: fixed;
   inset: 0;
@@ -672,6 +713,7 @@ header a {
   .experience {
     padding: 28px 20px;
   }
+  .investor-marquee { width: calc(100% + 40px); margin: -28px -20px 25px; }
   .showcase {
     grid-template-columns: 1fr;
   }
@@ -698,6 +740,8 @@ header a {
     margin-top: 35px;
   }
   .qr-card { width: 100%; max-width: 270px; }
+  .floating-chat { right: 15px; bottom: 15px; padding-right: 12px; }
+  .floating-chat b { display: none; }
   .ecosystem { padding: 36px 20px; }
   .ecosystem-logos { grid-template-columns: 1fr; }
   .ecosystem-logos div { height: 105px; }
