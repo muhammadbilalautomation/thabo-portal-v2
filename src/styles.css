@@ -76,6 +76,18 @@ header a {
   display: flex;
   gap: 8px;
 }
+.voice-notice {
+  position: absolute;
+  right: 5vw;
+  top: 70px;
+  max-width: 360px;
+  color: #d9bd78;
+  font-size: 9px;
+  text-align: right;
+}
+.portal.light .voice-notice {
+  color: #765b26;
+}
 .header-actions .sound,
 .header-actions .theme-toggle,
 .header-actions .language > button {

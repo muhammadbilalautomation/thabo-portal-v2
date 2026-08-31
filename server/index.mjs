@@ -2,6 +2,13 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 
 const knowledge = JSON.parse(await readFile(new URL("./knowledge-base.json", import.meta.url), "utf8"));
+try {
+  const env = await readFile(new URL("../.env.local", import.meta.url), "utf8");
+  for (const line of env.split(/\r?\n/)) {
+    const split = line.indexOf("=");
+    if (split > 0 && !line.startsWith("#")) process.env[line.slice(0, split).trim()] ||= line.slice(split + 1).trim();
+  }
+} catch { /* local secrets are optional during setup */ }
 const port = Number(process.env.KNOWLEDGE_PORT || 8787);
 const normalize = (value = "") => value.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -27,6 +34,23 @@ createServer(async (request, response) => {
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   if (request.method === "OPTIONS") return response.end();
   if (request.url === "/api/knowledge/health") return response.end(JSON.stringify({ ok: true, entries: knowledge.entries.length }));
+  if (request.method === "POST" && request.url === "/api/voice/speak") {
+    let raw = "";
+    for await (const chunk of request) raw += chunk;
+    const body = JSON.parse(raw || "{}");
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    if (!apiKey || !voiceId) { response.statusCode = 503; return response.end(JSON.stringify({ error: "ElevenLabs is not configured" })); }
+    const audio = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "xi-api-key": apiKey, "Accept": "audio/mpeg" },
+      body: JSON.stringify({ text: String(body.text || ""), model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.52, similarity_boost: 0.78 } }),
+    });
+    if (!audio.ok) { response.statusCode = audio.status; return response.end(JSON.stringify({ error: "ElevenLabs request failed" })); }
+    response.setHeader("Content-Type", "audio/mpeg");
+    response.end(Buffer.from(await audio.arrayBuffer()));
+    return;
+  }
   if (request.method === "POST" && request.url === "/api/knowledge/search") {
     let raw = "";
     for await (const chunk of request) raw += chunk;

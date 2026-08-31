@@ -27,13 +27,16 @@ const slides = slideGroups.flatMap(([sector, count]) =>
 );
 const languages = [
   ["English", "en-US", "international"],
+  ["English (Canada)", "en-CA", "international"],
   ["French", "fr-FR", "international"],
+  ["French (Canada)", "fr-CA", "international"],
   ["Chinese", "zh-CN", "international"],
   ["Arabic", "ar-SA", "international"],
   ["Spanish", "es-ES", "international"],
   ["Urdu", "ur-PK", "international"],
   ["Hebrew", "he-IL", "international"],
   ["Russian", "ru-RU", "international"],
+  ["Swedish", "sv-SE", "international"],
   ["Other", "en-US", "international"],
   ["Setswana", "tn-BW", "native"],
   ["Kalanga", "kck-BW", "native"],
@@ -57,8 +60,58 @@ const intros: Record<string, string> = {
     "ברוכים הבאים להזדמנויות ההשקעה בבוטסואנה. BITC מסייע למשקיעים באמצעות שירותי השקעה מרוכזים. לחצו על הצ'אט כדי לדבר עם ת'אבו.",
   Russian:
     "Добро пожаловать в мир инвестиционных возможностей Ботсваны. BITC оказывает инвесторам комплексную поддержку. Нажмите «Чат», чтобы поговорить с Табо.",
+  Swedish:
+    "Välkommen till investeringsmöjligheter i Botswana. BITC hjälper investerare genom samordnade tjänster. Klicka på Chat för att prata med Thabo.",
   Afrikaans:
     "Welkom by beleggingsgeleenthede in Botswana. BITC ondersteun beleggers met eenstopdienste. Klik op Chat om met Thabo te praat.",
+};
+const greetings: Record<string, string> = {
+  English: "Welcome. How may I support your investment journey in Botswana today?",
+  French: "Bienvenue. Comment puis-je vous accompagner dans votre projet d’investissement au Botswana ?",
+  Chinese: "欢迎。今天我能如何协助您在博茨瓦纳的投资之旅？",
+  Arabic: "مرحباً. كيف يمكنني مساعدتك اليوم في رحلتك الاستثمارية في بوتسوانا؟",
+  Spanish: "Bienvenido. ¿Cómo puedo ayudarle hoy con su inversión en Botsuana?",
+  Urdu: "خوش آمدید۔ آج میں بوٹسوانا میں آپ کے سرمایہ کاری کے سفر میں کیسے مدد کر سکتا ہوں؟",
+  Hebrew: "ברוכים הבאים. כיצד אוכל לסייע היום במסע ההשקעה שלכם בבוטסואנה?",
+  Russian: "Добро пожаловать. Чем я могу помочь вам сегодня с инвестициями в Ботсвану?",
+  Swedish: "Välkommen. Hur kan jag hjälpa dig med din investering i Botswana idag?",
+  Afrikaans: "Welkom. Hoe kan ek vandag met u belegging in Botswana help?",
+};
+const languageDetails = (name: string) => languages.find((item) => item[0] === name) ?? languages[0];
+const localizedText = (map: Record<string, string>, name: string) => map[name] ?? map[name.split(" (")[0]] ?? map.English;
+const speakInSelectedLanguage = async (text: string, name: string) => {
+  const locale = languageDetails(name)[1];
+  try {
+    const response = await fetch("/api/voice/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: name, locale }),
+    });
+    if (response.ok) {
+      const audio = new Audio(URL.createObjectURL(await response.blob()));
+      await audio.play();
+      return true;
+    }
+  } catch { /* use an exact browser voice only when available */ }
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return false;
+  let voices = speechSynthesis.getVoices();
+  if (!voices.length) {
+    await new Promise<void>((resolve) => {
+      const timer = window.setTimeout(resolve, 1200);
+      speechSynthesis.addEventListener("voiceschanged", () => { window.clearTimeout(timer); resolve(); }, { once: true });
+    });
+    voices = speechSynthesis.getVoices();
+  }
+  const selectedVoice = voices.find((item) => item.lang.toLowerCase() === locale.toLowerCase()) ??
+    voices.find((item) => item.lang.toLowerCase().startsWith(locale.split("-")[0].toLowerCase()));
+  if (!selectedVoice) return false;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = locale;
+  utterance.voice = selectedVoice;
+  utterance.rate = 0.92;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+  return true;
 };
 const actionKeywords = [
   "research", "search the web", "internet", "google sheet", "spreadsheet",
@@ -72,13 +125,14 @@ export default function App() {
   const [index, setIndex] = useState(0),
     [chat, setChat] = useState(false),
     [voice, setVoice] = useState(true),
-    [language, setLanguage] = useState("English"),
+    [language, setLanguage] = useState(() => localStorage.getItem("thabo-language") || "English"),
     [languageOpen, setLanguageOpen] = useState(false),
     [theme, setTheme] = useState<"dark" | "light">("dark"),
     [message, setMessage] = useState(""),
     [sending, setSending] = useState(false),
+    [voiceNotice, setVoiceNotice] = useState(""),
     [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-      { id: 1, role: "assistant", text: "Welcome. How may I support your investment journey in Botswana today?" },
+      { id: 1, role: "assistant", text: localizedText(greetings, localStorage.getItem("thabo-language") || "English") },
     ]);
   const active = slides[index];
   useEffect(() => {
@@ -91,16 +145,19 @@ export default function App() {
   }, [chat]);
   useEffect(() => {
     if (chat || !voice || !("speechSynthesis" in window)) return;
-    speechSynthesis.cancel();
-    const selected = languages.find((l) => l[0] === language),
-      u = new SpeechSynthesisUtterance(intros[language] ?? intros.English);
-    u.lang = selected?.[1] ?? "en-US";
-    u.rate = 0.92;
-    speechSynthesis.speak(u);
-    return () => speechSynthesis.cancel();
+    void speakInSelectedLanguage(localizedText(intros, language), language).then((played) =>
+      setVoiceNotice(played ? "" : `${language} voice will activate when the ElevenLabs API is connected.`),
+    );
+    return () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); };
   }, [chat, voice, language]);
+  useEffect(() => localStorage.setItem("thabo-language", language), [language]);
+  const selectLanguage = (name: string) => {
+    setLanguage(name);
+    setLanguageOpen(false);
+    setChatMessages((items) => items.length === 1 ? [{ ...items[0], text: localizedText(greetings, name) }] : items);
+  };
   const openChat = () => {
-    speechSynthesis.cancel();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
     setChat(true);
   };
   const sendToWebhook = async (event: React.FormEvent) => {
@@ -112,6 +169,12 @@ export default function App() {
     setMessage("");
     setSending(true);
     try {
+      if (/^(hi|hy|hello|hey|salaam|salam|سلام|ہیلو|नमस्ते|مرحبا)[!.?\s]*$/i.test(question)) {
+        const answer = localizedText(greetings, language);
+        setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: answer }]);
+        if (voice) void speakInSelectedLanguage(answer, language);
+        return;
+      }
       if (!isAction) {
         const response = await fetch("/api/knowledge/search", {
           method: "POST",
@@ -122,12 +185,8 @@ export default function App() {
         const data = await response.json();
         const answer = data.matches?.[0]?.answer ?? "I could not find that information in the BITC knowledge base.";
         setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: answer }]);
-        if (voice && "speechSynthesis" in window) {
-          speechSynthesis.cancel();
-          const selected = languages.find((item) => item[0] === language);
-          const utterance = new SpeechSynthesisUtterance(answer);
-          utterance.lang = selected?.[1] ?? "en-US";
-          speechSynthesis.speak(utterance);
+        if (voice) {
+          void speakInSelectedLanguage(answer, language);
         }
         return;
       }
@@ -152,6 +211,7 @@ export default function App() {
           (typeof data?.message === "string" ? data.message : null) ??
           "Your request was received and the workflow completed successfully.";
       setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: answer }]);
+      if (voice) void speakInSelectedLanguage(answer, language);
     } catch (error) {
       setChatMessages((items) => [...items, { id: Date.now() + 1, role: "assistant", text: error instanceof Error ? error.message : "The requested service did not respond." }]);
     } finally {
@@ -194,15 +254,16 @@ export default function App() {
                 <div className="language-menu">
                   <p>International languages</p>
                   {languages.filter((l) => l[2] === "international").map((l) => (
-                    <button key={l[0]} onClick={() => { setLanguage(l[0]); setLanguageOpen(false); }} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
+                    <button key={l[0]} onClick={() => selectLanguage(l[0])} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
                   ))}
                   <p>Native languages</p>
                   {languages.filter((l) => l[2] === "native").map((l) => (
-                    <button key={l[0]} onClick={() => { setLanguage(l[0]); setLanguageOpen(false); }} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
+                    <button key={l[0]} onClick={() => selectLanguage(l[0])} className={language === l[0] ? "chosen" : ""}>{l[0]}</button>
                   ))}
                 </div>
               )}
             </div>
+            {voiceNotice && <span className="voice-notice">{voiceNotice}</span>}
           </div>
           <a href="https://www.bitc.co.bw/" target="_blank">BITC KNOWLEDGE</a>
         </div>
