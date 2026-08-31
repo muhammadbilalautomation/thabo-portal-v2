@@ -313,6 +313,10 @@ export default function App() {
             <button className="primary" onClick={openChat}>
               <MessageCircle /> START CHAT
             </button>
+            <a className="qr-card" href="https://bitcassist-hub2w6hr.manus.space" target="_blank" rel="noreferrer">
+              <img src="/assets/ecosystem/thabo-qr-code.png" alt="QR code to open the Thabo portal" />
+              <span><b>SCAN TO ACCESS THABO</b><small>Open the portal on your phone</small></span>
+            </a>
           </div>
         </div>
         <div className="control-bar">
@@ -331,6 +335,15 @@ export default function App() {
           Click Chat to talk to Thabo and specify your preferred language for
           communication.
         </p>
+      </section>
+      <section className="ecosystem" aria-labelledby="ecosystem-title">
+        <p>OFFICIAL ECOSYSTEM</p>
+        <h2 id="ecosystem-title">Botswana investment and trade network</h2>
+        <div className="ecosystem-logos">
+          <div><img src="/assets/ecosystem/go-botswana.jpg" alt="Go Botswana and Botswana Investment and Trade Centre" /></div>
+          <div><img src="/assets/ecosystem/global-expo-botswana.jpg" alt="Global Expo Botswana" /></div>
+          <div><img src="/assets/ecosystem/bitc.jpg" alt="Botswana Investment and Trade Centre" /></div>
+        </div>
       </section>
       {chat && (
         <div className="modal">

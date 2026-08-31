@@ -261,6 +261,25 @@ header a {
 .primary svg {
   width: 16px;
 }
+.qr-card {
+  width: min(230px, 100%);
+  margin: 20px auto 0;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #d7b66a55;
+  background: #fff;
+  color: #173526;
+  text-decoration: none;
+  box-shadow: 0 12px 30px #0004;
+  transition: transform 0.2s ease;
+}
+.qr-card:hover { transform: translateY(-3px); }
+.qr-card img { width: 74px; height: 74px; object-fit: contain; }
+.qr-card span { text-align: left; }
+.qr-card b { display: block; font-size: 9px; letter-spacing: 0.1em; }
+.qr-card small { display: block; margin-top: 4px; color: #657269; font-size: 8px; }
 .control-bar {
   position: relative;
   max-width: 1180px;
@@ -361,6 +380,40 @@ header a {
   font-size: 10px;
   letter-spacing: 0.08em;
 }
+.ecosystem {
+  padding: 46px 5vw 55px;
+  text-align: center;
+  background: #06100c;
+  border-top: 1px solid #d8b36a33;
+}
+.ecosystem > p {
+  margin: 0;
+  color: #d7b66a;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+}
+.ecosystem h2 {
+  margin: 8px 0 24px;
+  font: 700 28px "Playfair Display";
+}
+.ecosystem-logos {
+  max-width: 1040px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.ecosystem-logos div {
+  height: 118px;
+  padding: 18px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #d8d1c3;
+  box-shadow: 0 15px 35px #0003;
+}
+.ecosystem-logos img { width: 100%; max-height: 80px; object-fit: contain; }
+.portal.light .ecosystem { background: #e6dece; color: #173526; border-color: #92763d44; }
 .modal {
   position: fixed;
   inset: 0;
@@ -644,6 +697,10 @@ header a {
   .service-card {
     margin-top: 35px;
   }
+  .qr-card { width: 100%; max-width: 270px; }
+  .ecosystem { padding: 36px 20px; }
+  .ecosystem-logos { grid-template-columns: 1fr; }
+  .ecosystem-logos div { height: 105px; }
   .control-bar {
     align-items: flex-start;
     gap: 18px;
